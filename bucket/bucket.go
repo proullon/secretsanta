@@ -1,9 +1,9 @@
 package bucket
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
-	"time"
+	"math/big"
 )
 
 type Person struct {
@@ -23,26 +23,33 @@ func LoveLove(name1 string, name2 string, people []*Person) {
 	}
 }
 
-func randInt(min int, max int) int {
-	time.Sleep(235 * time.Microsecond)
-	rand.Seed(time.Now().UTC().UnixNano())
-	return min + rand.Intn(max-min)
+func randInt(min int, max int) (int, error) {
+	r, err := rand.Int(rand.Reader, big.NewInt(int64(max-min)))
+	if err != nil {
+		return 0, err
+	}
+
+	return int(r.Int64()), nil
 }
 
-func goodRand(name *Person, toAssign []*Person) int {
+func goodRand(name *Person, toAssign []*Person) (int, error) {
 
-	for {
-		r := randInt(0, len(toAssign))
+	for out := 0; out < 100; out++ {
+		r, err := randInt(0, len(toAssign))
+		if err != nil {
+			return 0, err
+		}
 
 		if toAssign[r].InLoveWith != nil && name.Email == toAssign[r].InLoveWith.Email {
 			continue
 		}
 
 		if toAssign[r].Name != name.Name {
-			return r
+			return r, nil
 		}
 	}
 
+	return 0, fmt.Errorf("No good match left!")
 }
 
 func removeFromList(r int, toAssign []*Person) []*Person {
@@ -57,20 +64,39 @@ func removeFromList(r int, toAssign []*Person) []*Person {
 	return newToAssign
 }
 
+type Gift struct {
+	Gifter   *Person
+	Receiver *Person
+}
+
 func RunChristmasBucket(people []*Person, conf EmailAccount) {
 
 	toAssign := people
+	var gifts []Gift
 
 	for i := range people {
-		fmt.Printf("Sending %d/%d\n", i+1, len(people))
-		r := goodRand(people[i], toAssign)
+		r, err := goodRand(people[i], toAssign)
+		if err != nil {
+			RunChristmasBucket(people, conf)
+			return
+		}
 
-		body := fmt.Sprintf("You offer a gift to %s\n%s\n", toAssign[r].Name, conf.Body)
-		err := sendEmail(conf, conf.Subject, body, people[i].Email)
+		g := Gift{
+			Gifter:   people[i],
+			Receiver: toAssign[r],
+		}
+		gifts = append(gifts, g)
+		toAssign = removeFromList(r, toAssign)
+	}
+
+	for _, g := range gifts {
+		fmt.Printf("%s -> %s\n", g.Gifter.Name, g.Receiver.Name)
+		body := fmt.Sprintf("<p>Tu offres un cadeau à <b>%s!</b></p>%s", g.Receiver.Name, conf.Body)
+
+		err := sendEmail(conf, conf.Subject, body, g.Gifter.Email)
 		if err != nil {
 			fmt.Printf("Arg ! %s\n", err)
 		}
-
-		toAssign = removeFromList(r, toAssign)
 	}
+
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/proullon/christmas/bucket"
+	"github.com/proullon/secretsanta/bucket"
 )
 
 func main() {

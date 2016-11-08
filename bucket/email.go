@@ -23,6 +23,7 @@ type EmailAccount struct {
 	Server   string
 	Port     string
 
+	From    string
 	Subject string
 	Body    string
 }
@@ -30,10 +31,18 @@ type EmailAccount struct {
 const emailTemplate = `From: {{.From}}
 To: {{.To}}
 Subject: {{.Subject}}
+Content-Type: text/html;
+
+
+<html>
+<head>
+</head>
+<body>
 
 {{.Body}}
 
-Merry christmas,
+</body>
+</html>
 `
 
 func templateMessage(from string, to string, subject string, body string) (doc bytes.Buffer, err error) {
@@ -55,7 +64,7 @@ func templateMessage(from string, to string, subject string, body string) (doc b
 
 func sendEmail(conf EmailAccount, subject string, body string, receiver string) (err error) {
 
-	doc, err := templateMessage(conf.Email, receiver, subject, body)
+	doc, err := templateMessage(conf.From, receiver, subject, body)
 	if err != nil {
 		log.Printf("SendEmail: Cannot template message: %s\n", err)
 		return
