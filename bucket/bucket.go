@@ -3,7 +3,9 @@ package bucket
 import (
 	"crypto/rand"
 	"fmt"
+	"log"
 	"math/big"
+	"strings"
 )
 
 type Person struct {
@@ -91,6 +93,21 @@ func RunChristmasBucket(people []*Person, conf EmailAccount) {
 
 	for _, g := range gifts {
 		fmt.Printf("%s -> %s\n", g.Gifter.Name, g.Receiver.Name)
+	}
+
+	fmt.Printf("\nOK? [Y/n]:")
+	var response string
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		log.Fatal(err)
+	}
+	response = strings.TrimSuffix(response, "\n")
+	if response != "" || strings.Contains(strings.ToLower(response), "y") {
+		fmt.Printf("Aborting\n")
+		return
+	}
+
+	for _, g := range gifts {
 		body := fmt.Sprintf("<p>Tu offres un cadeau à <b>%s!</b></p>%s", g.Receiver.Name, conf.Body)
 
 		err := sendEmail(conf, conf.Subject, body, g.Gifter.Email)
